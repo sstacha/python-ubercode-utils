@@ -3,8 +3,8 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-setuptools.setup(name='python-ubercode-utils',
-      version='2.0.2',
+setuptools.setup(name='python_ubercode_utils',
+      version='2.0.3',
       description='Core python utilities for all apps',
       long_description=long_description,
       long_description_content_type="text/markdown",
