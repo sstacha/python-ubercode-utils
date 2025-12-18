@@ -183,7 +183,7 @@ class ColorLogger:
             c_msg = str(msg)
             if self.color_output and color:
                 c_msg = color + c_msg + TermColor.ENDC
-            if msg == self.repeat_msg:
+            if str(msg) == self.repeat_msg:
                 # the first time we start repeating track the indent level
                 if not self.repeat_cnt:
                     if indent is not None:

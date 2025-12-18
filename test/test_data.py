@@ -1,11 +1,11 @@
 import unittest
 from pathlib import Path
 
-from ubercode.utils.data import JSON
-from ubercode.utils.data import XML
+from ubercode.utils.data import JsonData
+from ubercode.utils.data import XmlData
 
 
-class TestJSON(unittest.TestCase):
+class TestJsonData(unittest.TestCase):
 
     # -------- common usages ----------
     def test_JSON(self):
@@ -48,10 +48,10 @@ class TestJSON(unittest.TestCase):
 }
 """
         # test we can construct from a json string
-        json = JSON(json_string=json_string)
+        json = JsonData(json_string=json_string)
         self.assertEqual(len(json.data['people']), 3)
         # test we can construct by chaining and reading file
-        json2 = JSON().from_json_file(str(file_path))
+        json2 = JsonData().from_json_file(str(file_path))
         self.assertEqual(json.data, json2.data)
         # test encoding
         json_string = """
@@ -89,7 +89,7 @@ class TestJSON(unittest.TestCase):
   ]
 }
 """
-        json = JSON(json_string=json_string, encode_ampersands=True)
+        json = JsonData(json_string=json_string, encode_ampersands=True)
         self.assertEqual(len(json.data['people']), 3)
         first_name = json.data['people'][0]['firstName']
         self.assertEqual(first_name, "Joe &amp; Baker")
@@ -101,7 +101,7 @@ class TestJSON(unittest.TestCase):
         self.assertEqual(str(json), result)
 
 
-class TestXML(unittest.TestCase):
+class TestXmlData(unittest.TestCase):
 
     # -------- common usages ----------
     def test_XML(self):
@@ -121,15 +121,15 @@ class TestXML(unittest.TestCase):
 </contacts>
 """
         # test we can construct from an xml string
-        xml = XML(xml_string=xml_string)
+        xml = XmlData(xml_string=xml_string)
         # NOTE: because we used a multiline string we need to strip the extra newlines before and after <contacts>
         self.assertEqual(str(xml), xml_string.strip())
         # normal string doesn't need stripping
         xml_compact_string = "<contacts><contact><name>Buggs Bunny</name></contact><contact><name>Daffy Duck</name></contact></contacts>"
-        xml2 = XML(xml_compact_string)
+        xml2 = XmlData(xml_compact_string)
         self.assertEqual(str(xml2), xml_compact_string)
         # test we can create using the from_xml_string() method chaining
-        xml3 = XML().from_xml_string(xml_compact_string)
+        xml3 = XmlData().from_xml_string(xml_compact_string)
         self.assertEqual(str(xml2), str(xml3))
         # test that method chaining after constructor overrides the value in place
         self.assertNotEqual(str(xml), str(xml2))
@@ -153,7 +153,7 @@ class TestXML(unittest.TestCase):
     </contact>
 </contacts>
 """
-        xml = XML(xml_string=xml_string, encode_ampersands=True)
+        xml = XmlData(xml_string=xml_string, encode_ampersands=True)
         xml_dict = xml.to_dict()
         self.assertEqual(xml_dict['contacts']['contact'][0]['@attr'], '1')
 

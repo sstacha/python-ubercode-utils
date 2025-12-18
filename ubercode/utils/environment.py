@@ -6,6 +6,7 @@ import os
 import time
 from datetime import datetime
 from typing import Any, Tuple
+from pathlib import Path
 from ubercode.utils.logging import ColorLogger
 from ubercode.utils import convert
 
@@ -223,3 +224,61 @@ class Environment:
                         self._logger.warn(
                             f"{db_parts[0]}[{db_parts[1]}][{db_parts[2]}] has a database or property naming issue!")
         return db_dict
+
+class FauxApp:
+    def __init__(self, logger: ColorLogger = None, notebook_path: Path = Path(), default_dict: dict = None) -> None:
+        self._logger = logger if logger else _utils_settings_logger
+        self.notebook_path = notebook_path.resolve()
+        self.app_path = os.path.dirname(self.notebook_path)
+        self.project_path = os.path.dirname(self.app_path)
+        self.instance_path = os.path.join(self.project_path, 'instance')
+        self.config = default_dict or dict(
+            SECRET_KEY = 'localmachine',
+            LOG_LEVEL = 'DEBUG',
+            DEBUG = True,
+            APP_DIR = self.app_path,
+            PROJECT_DIR = self.project_path,
+            DATABASE_DEBUG = False,
+            SA_URL_APP = f'sqlite+pysqlite:///{os.path.join(self.instance_path, "nbsync.sqlite3")}',
+            SA_URL_SRC_LOCAL = f'sqlite+pysqlite:///{os.path.join(self.instance_path, "src.sqlite3")}',
+            SA_URL_DST_LOCAL = f'sqlite+pysqlite:///{os.path.join(self.instance_path, "dst.sqlite3")}',
+        )
+
+    def from_mapping(self, mapping: dict) -> None:
+        self.config = self.config | mapping
+
+    def from_pyfile(self, config_file: str = '~/conf/nbsync.cfg') -> None:
+        # read the config file into dict if exists then merge
+        abs_cfg = os.path.expanduser(config_file)
+        try:
+            with open(abs_cfg, 'r') as fp:
+                for line in fp:
+                    line = line.strip()
+                    if line.startswith('#') or not line:
+                        continue
+                    # Split only on the first '=' to allow '=' in the value
+                    try:
+                        key, val = line.split('=', 1)
+                        self.config[key.strip().strip("'").strip('"')] = val.strip().strip("'").strip('"')
+                    except ValueError:
+                        # Handle lines that might not have an '='
+                        continue
+        except FileNotFoundError:
+            self._logger.debug(f'[{config_file}] does not exist')
+
+    def from_prefixed_env(self, prefix: str = 'UC'):
+        # read environment variables with the given prefix and merge into config
+        prefix_len = len(prefix) + 1  # +1 for the underscore
+        for key, value in os.environ.items():
+            if key.startswith(f'{prefix}_'):
+                config_key = key[prefix_len:]  # remove the prefix and underscore
+                self.config[config_key] = value
+                # lastly, attempt to convert 'true'/'false' to boolean
+                if value.lower() == 'true':
+                    self.config[config_key] = True
+                elif value.lower() == 'false':
+                    self.config[config_key] = False
+
+    def __repr__(self):
+        return convert.obj_to_str(self)
+

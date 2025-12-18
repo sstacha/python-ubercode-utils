@@ -9,7 +9,7 @@ import xml.etree.ElementTree as Etree
 from collections import defaultdict
 
 
-class JSON:
+class JsonData:
     """ simple json class to encapsulate basic json operations """
     def __init__(self, json_string: str or None = None, encode_ampersands: bool = False):
         # data is core python objects (list, dict, object, etc) from the core python JSON.loads
@@ -49,7 +49,7 @@ class JSON:
         return str(self.data)
 
 
-class XML:
+class XmlData:
     """ simple xml class to encapsulate basic xml operations using build in python ETree """
     def __init__(self, xml_string: str or None = None, encode_ampersands: bool = False):
         # data is core python ElementTree object
@@ -95,7 +95,7 @@ class XML:
         output to dict
         :return: dict
         """
-        return XML.tree_to_dict(self.data)
+        return XmlData.tree_to_dict(self.data)
 
     @staticmethod
     def tree_to_dict(t: Etree) -> dict:
@@ -108,7 +108,7 @@ class XML:
         children = list(t)
         if children:
             dd = defaultdict(list)
-            for dc in map(XML.tree_to_dict, children):
+            for dc in map(XmlData.tree_to_dict, children):
                 for k, v in dc.items():
                     dd[k].append(v)
             d = {t.tag: {k: v[0] if len(v) == 1 else v for k, v in dd.items()}}
