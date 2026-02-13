@@ -1,9 +1,8 @@
 import unittest
-from contextlib import redirect_stdout
-from io import StringIO
 
 from ubercode.utils.urls import ParsedUrl
 from ubercode.utils.urls import ParsedQueryString
+from ubercode.utils.urls import DjUrl
 
 
 class TestUrls(unittest.TestCase):
@@ -49,7 +48,46 @@ class TestUrls(unittest.TestCase):
         parsed_url = ParsedUrl(test_uri, default_scheme='http', default_netloc='localhost:8000', default_filepath='/booger/')
         self.assertEqual("tel", str(parsed_url.scheme))
         self.assertEqual(test_uri, parsed_url.url)
-
+        # test that a full django database url parses to the individual parts correctly
+        dj_db_url = DjUrl('django.db.backends.mysql://scott:tiger@localhost:1366/test')
+        self.assertEqual(dj_db_url.engine,'django.db.backends.mysql')
+        self.assertEqual(dj_db_url.host, 'localhost')
+        self.assertEqual(dj_db_url.user, 'scott')
+        self.assertEqual(dj_db_url.password, 'tiger')
+        self.assertEqual(dj_db_url.port, 1366)
+        self.assertEqual(dj_db_url.name, 'test')
+        # test that str masks password
+        self.assertNotIn(str(dj_db_url), 'tiger')
+        # test that a missing one is falsy so it doesn't get overridden at startup
+        dj_db_url = DjUrl('://localhost/test')
+        self.assertFalse(dj_db_url.engine)
+        self.assertFalse(dj_db_url.user)
+        self.assertFalse(dj_db_url.password)
+        self.assertFalse(dj_db_url.port)
+        self.assertTrue(dj_db_url.host)
+        self.assertTrue(dj_db_url.name)
+        # test that an empty url doesn't break and returns false for everything
+        dj_db_url = DjUrl('')
+        self.assertFalse(dj_db_url.engine)
+        self.assertFalse(dj_db_url.user)
+        self.assertFalse(dj_db_url.password)
+        self.assertFalse(dj_db_url.port)
+        self.assertFalse(dj_db_url.host)
+        self.assertFalse(dj_db_url.name)
+        # test that str returns an encoded version that may include separators but can be re-initted correctly
+        dj_db_url = DjUrl(str(dj_db_url))
+        self.assertFalse(dj_db_url.engine)
+        self.assertFalse(dj_db_url.user)
+        self.assertFalse(dj_db_url.password)
+        self.assertFalse(dj_db_url.port)
+        self.assertFalse(dj_db_url.host)
+        self.assertFalse(dj_db_url.name)
+        # test that just password works since this is most common
+        dj_db_url = DjUrl(':asdf:!/stuff #')
+        self.assertEqual(dj_db_url.password, 'asdf:!/stuff #')
+        # test encoded @ for password since that could be needed
+        dj_db_url = DjUrl(':asfcasdf23%401:/!?--atencoded')
+        self.assertEqual(dj_db_url.password, 'asfcasdf23@1:/!')
 
     # --- basic retrieval
     # -------------------

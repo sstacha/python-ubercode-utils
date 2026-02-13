@@ -7,8 +7,10 @@ import time
 from datetime import datetime
 from typing import Any, Tuple
 from pathlib import Path
+
 from ubercode.utils.logging import ColorLogger
 from ubercode.utils import convert
+from ubercode.utils.urls import DjUrl
 
 _utils_settings_logger = ColorLogger("utils.environment")
 
@@ -224,6 +226,44 @@ class Environment:
                         self._logger.warn(
                             f"{db_parts[0]}[{db_parts[1]}][{db_parts[2]}] has a database or property naming issue!")
         return db_dict
+
+    def override_database_urls(self, db_dict: dict) -> dict:
+        """
+        Much like above,iterates over environment variables and overrides any database variables. However, instead
+        of looking for each variable with a pattern like DATABASES__default__ENGINE it looks for DJ_URL_ prefix and
+        parses the url into a DjUrl object.  This allows property files to use one line per database config
+        instead of one key,value pair per variable like: DJ_URL_default = 'django.db.backends.mysql://scott:tiger@localhost:1366/test'
+        NOTE: you can omit everything except what you want to replace like: '://:newpassword@' which
+        will only replace the password
+
+        :param db_dict: settings database dictionary to replace variables in ex: DATABASES
+        :return: new dict with updated overridden values
+        """
+        items = []
+        if hasattr(self._env_map, "items"):
+            items = self._env_map.items()
+        elif hasattr(os.environ, "items"):
+            items = os.environ.items()
+        for k, v in items:
+            # unlike override_database_variables() we will look for prefix DJ_URL_
+            if k and str(k).upper().startswith('DJ_URL_') and v:
+                # the actual key is the remaining part left
+                key = str(k)[len('DJ_URL_'):]
+                djurl = DjUrl(str(v))
+                for attr, value in vars(djurl).items():
+                    if value:
+                        if not db_dict.get(key):
+                            self._logger.warn(f'Missing database key [{key}]! creating...')
+                            db_dict[key] = {}
+                        _log_from_value = db_dict[key].get(attr.upper(), 'None')
+                        _log_to_value = value
+                        if attr.upper() in self._secret_properties:
+                            _log_to_value = convert.to_mask(value)
+                        db_dict[key][attr.upper()] = value
+                        self._logger.info(
+                            f'set [{key}][{attr.upper()}] from [{_log_from_value}] to [{_log_to_value}]')
+        return db_dict
+
 
 class FauxApp:
     def __init__(self, logger: ColorLogger = None, notebook_path: Path = Path(), default_dict: dict = None) -> None:

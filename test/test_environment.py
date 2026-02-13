@@ -80,7 +80,9 @@ class TestEnvironment(unittest.TestCase):
         }
         environment = Environment(environment_variable_map=os_vars)
         # test we can override just the database file name
-        DATABASES = environment.override_database_variables(DATABASES)
+        with redirect_stdout(StringIO()) as sout:
+            DATABASES = environment.override_database_variables(DATABASES)
+        print(f"override_vars password log output \n{sout.getvalue()}")
         self.assertEqual(DATABASES['default']['NAME'], BASE_DIR / "sqlite.db")
         # test we can take the default sqlite database and change it to a full mysql connection using env vars
         os_vars = {
@@ -95,8 +97,7 @@ class TestEnvironment(unittest.TestCase):
         # test we can override the default sqllite for dev laptops with a full mysql connection on a deployed server
         with redirect_stdout(StringIO()) as sout:
             DATABASES = environment.override_database_variables(DATABASES)
-        log_output = sout.getvalue()
-        print(log_output)
+        print(f"override_vars log output \n{sout.getvalue()}")
         self.assertEqual(DATABASES['default']['ENGINE'], 'django.db.backends.mysql')
         self.assertEqual(DATABASES['default']['HOST'], 'testdb.example.org')
         self.assertEqual(DATABASES['default']['NAME'], 'test')
@@ -104,10 +105,62 @@ class TestEnvironment(unittest.TestCase):
         self.assertEqual(DATABASES['default']['PASSWORD'], 'Test_insecure_password')
         self.assertEqual(DATABASES['default']['PORT'], 3306)
         # test our password is encoded when logged
-        self.assertTrue("Test_insecure_password" not in log_output)
-        self.assertTrue("Test_************sword" in log_output)
+        self.assertTrue("Test_insecure_password" not in sout.getvalue())
+        self.assertTrue("Test_************sword" in sout.getvalue())
         # test a None still works for initialization
         self.assertIsNotNone(Environment())
+
+    def test_override_database_urls(self):
+        # we will start with the default dict for a new django install
+        BASE_DIR = Path(__file__).resolve().parent
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+        db_override = BASE_DIR / "sqlite.db"
+        os_vars = {
+            "DJ_URL_default": f"://@/{db_override}",
+#            "DATABASES__default__NAME": BASE_DIR / "sqlite.db",
+            "TEST_DATE": "2023-02-21 08:30:00",
+            "TEST_INT": "1",
+            "PW": "abc1234def",
+            "TEST_STRING": "abc1234def"
+        }
+        environment = Environment(environment_variable_map=os_vars)
+        # test we can override just the database file name
+        with redirect_stdout(StringIO()) as djurl_out:
+            DATABASES = environment.override_database_urls(DATABASES)
+        print(f"djurl password log output: \n{djurl_out.getvalue()}")
+
+        self.assertEqual(DATABASES['default']['NAME'], str(db_override))
+        # test we can take the default sqlite database and change it to a full mysql connection using env vars
+        # os_vars = {
+        #     'DATABASES__default__ENGINE': 'django.db.backends.mysql',
+        #     'DATABASES__default__HOST': 'testdb.example.org',
+        #     'DATABASES__default__NAME': 'test',
+        #     'DATABASES__default__USER': 'testuser',
+        #     'DATABASES__default__PASSWORD': 'Test_insecure_password',
+        #     'DATABASES__default__PORT': 3306,
+        # }
+        os_vars = {
+            'DJ_URL_default': 'django.db.backends.mysql://testuser:Test_insecure_password@testdb.example.org:3306/test'
+        }
+        environment = Environment(environment_variable_map=os_vars)
+        # test we can override the default sqllite for dev laptops with a full mysql connection on a deployed server
+        with redirect_stdout(StringIO()) as djurl_out:
+            DATABASES = environment.override_database_urls(DATABASES)
+        print(f"djurl full log output \n{djurl_out.getvalue()}")
+        self.assertEqual(DATABASES['default']['ENGINE'], 'django.db.backends.mysql')
+        self.assertEqual(DATABASES['default']['HOST'], 'testdb.example.org')
+        self.assertEqual(DATABASES['default']['NAME'], 'test')
+        self.assertEqual(DATABASES['default']['USER'], 'testuser')
+        self.assertEqual(DATABASES['default']['PASSWORD'], 'Test_insecure_password')
+        self.assertEqual(DATABASES['default']['PORT'], 3306)
+        # test our password is encoded when logged
+        self.assertTrue("Test_insecure_password" not in djurl_out.getvalue())
+
 
     def test_timer(self):
         timer = Timer().start()

@@ -1,8 +1,8 @@
 import os
 from urllib.parse import urlsplit
-from ubercode.utils.convert import to_str
+from ubercode.utils.convert import to_str, to_int
 from pathlib import PurePath
-
+from .convert import to_mask
 
 class ParsedQueryString:
     """
@@ -215,6 +215,99 @@ class ParsedUrl:
         :return:
         """
         return self.url
+
+class DjUrl:
+    engine = None
+    user = None
+    password = None
+    host = None
+    port = None
+    name = None
+
+    def __init__(self, dj_url: str = None) -> None:
+        """
+        parses a packed "django_url" into its parts following similar rules to SqlAlchemy
+        format: engine://user:password@host[:port]/dbname
+        example: django.db.backends.mysql://scott:tiger@localhost:1366/test
+
+        NOTE: asking for the string value will give back the original packed url masking the password
+        NOTE: to_dict will give back the dictionary values to be added or replaced in the DATABASES dict
+
+        :param url: packed django url  ex: django.db.backends.mysql://scott:tiger@localhost:1366/test
+        """
+        dj_url = dj_url or ""
+        dj_url = dj_url.strip()
+        encoded = False
+        if dj_url.endswith('?--atencoded'):
+            encoded = True
+            dj_url = dj_url[:-len('?--atencoded')].strip()
+        if not dj_url:
+            return
+        pos = dj_url.find('://')
+        if pos > -1:
+            self.engine = dj_url[:pos].strip() or None
+            constr = dj_url[pos + len('://'):].strip()
+        else:
+            constr = dj_url
+        pos = constr.find("@")
+        if pos > -1:
+            loginstr = constr[:pos].strip()
+            constr = constr[pos + len("@"):].strip()
+            pos = loginstr.find(':')
+            if pos > -1:
+                self.user = loginstr[:pos].strip() or None
+                self.password = loginstr[pos + len(':'):].strip() or None
+                if encoded:
+                    self.password = self.password.replace('%40', '@')
+            elif len(loginstr) > 0:
+                self.user = loginstr or None
+        else:
+            # since password is the most common replacement look for that specifically next if we didn't have an @
+            # NOTE: since password can contain / we will assume the only thing there is the password otherwise use @
+            # Ex: DjUrl(':newpassword/newdatabase') -> password=newpassword/newdatabase name=None
+            #     DjUrl(':newpassword@/newdatabase') -> password=newpassword name=newdatabase
+            #     DjUrl(':asfcasdf23%401:/!?--atencoded') -> password=asfcasdf23@1:/! name=None port=None
+            if constr.startswith(':'):
+                self.password = constr.strip(':')
+                constr = ''
+                if encoded:
+                    self.password = self.password.replace('%40', '@')
+        # NOTE: constr now contains everything after @ - no engine, user, password
+        # NOTE: may have port but no db ex: @:8080
+        pos = constr.find('/')
+        if pos > -1:
+            hoststr = constr[:pos].strip()
+            self.name = constr[pos + len('/'):].strip() or None
+        else:
+            hoststr = constr
+        # all that is left is hoststr
+        pos = hoststr.find(':')
+        if pos > -1:
+            self.host = hoststr[:pos].strip() or None
+            self.port = hoststr[pos + len(':'):].strip() or None
+            if self.port:
+                self.port = to_int(self.port, default=None, none_to_default=False)
+        elif len(hoststr) > 0:
+            self.host = hoststr
+
+    def to_dict(self) -> dict:
+        dct = {}
+        for attr, value in vars(self).items():
+            dct[attr.upper()] = value
+        return dct
+
+    def __str__(self) -> str:
+        url = f"{self.engine or ''}://"
+        if self.user:
+            url += self.user
+        if self.password:
+            url += f":{to_mask(self.password)}"
+        url += f"@{self.host or ''}"
+        if self.port:
+            url += f":{self.port}"
+        if self.name:
+            url += f"/{self.name}"
+        return url
 
 
 if __name__ == "__main__":

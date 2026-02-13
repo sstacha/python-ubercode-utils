@@ -13,7 +13,7 @@ FALSE_VALUES = [None, False, 0, "0", "n", "f", "false", "no", "off"]
 
 
 # -------- helper utilities ----------
-def strip(value: str or None, strip_chars: str = None, left: bool = True, right: bool = True) -> str or None:
+def strip(value: str | None, strip_chars: str = None, left: bool = True, right: bool = True) -> str | None:
     """
     return stripped value if possible or original value
     :param value: str value to be stripped
@@ -94,7 +94,7 @@ def to_bool(value) -> bool:
     return bool(value)
 
 
-def is_true(value: int or bool or str) -> bool:
+def is_true(value: int | bool | str) -> bool:
     """
     Convert <value> to a True boolean value.  Useful when you want to convert a passed parameter to True if it matches
     one of the defined TRUE_VALUES above; otherwise False.
@@ -121,7 +121,7 @@ def to_js_bool(bool_value: bool) -> str:
     return "false"
 
 
-def to_int(value, default: int = 0, none_to_default: bool = True, suppress_warnings: bool = True) -> int or None:
+def to_int(value, default: int | None = 0, none_to_default: bool = True, suppress_warnings: bool = True) -> int | None:
     """
     Convert <value> to int.  Will always return integer or none instead of throwing exception
     @param value: value to be converted
@@ -201,7 +201,7 @@ def from_iso8601_compact(value: Any = None, tz: timezone = timezone.utc):
     return _value
 
 
-def to_date(value: Any = None, tz: timezone or None = timezone.utc, none_to_now: bool = True, suppress_warnings: bool = True):
+def to_date(value: Any = None, tz: timezone | None = timezone.utc, none_to_now: bool = True, suppress_warnings: bool = True):
     """
     Convert string to python date.  Currently, only concerned about iso8601 and db type formats.
     None returns current date by default but can be overridden with none_to_now optional parameter
@@ -232,7 +232,7 @@ def to_date(value: Any = None, tz: timezone or None = timezone.utc, none_to_now:
 
 
 # -------- helper conversions --------
-def to_mask(value: str or None) -> str or None:
+def to_mask(value: str | None) -> str | None:
     _mask = value
     if isinstance(value, str) and value is not None and len(value) > 0:
         # if we are less than 4 chars then mask the entire string
