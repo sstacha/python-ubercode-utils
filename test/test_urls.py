@@ -88,6 +88,21 @@ class TestUrls(unittest.TestCase):
         # test encoded @ for password since that could be needed
         dj_db_url = DjUrl(':asfcasdf23%401:/!?--atencoded')
         self.assertEqual(dj_db_url.password, 'asfcasdf23@1:/!')
+        # test that we can pass a dict of database properties and have it fill in
+        default = {
+            'ENGINE': 'django.db.backends.mysql',
+            'HOST': 'localhost',
+            'USER': 'scott',
+            'PASSWORD': 'tiger',
+            'PORT': '3306',
+            'NAME': 'test'
+        }
+        dj_db_url = DjUrl().from_dict(default)
+        self.assertEqual(str(dj_db_url), 'django.db.backends.mysql://scott:t***r@localhost:3306/test')
+        # test that to_dict ignores None values so we only have overrides
+        dj_db_url = DjUrl(':testoverridepasswordonly')
+        override_dict = dj_db_url.to_dict()
+        self.assertEqual(str(override_dict), "{'PASSWORD': 'testoverridepasswordonly'}")
 
     # --- basic retrieval
     # -------------------

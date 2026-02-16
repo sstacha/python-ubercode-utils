@@ -8,8 +8,8 @@ delete any dist or eggs
 python setup.py sdist
 
 To Test:
-pip install --upgrade <path to app>/dist/python_ubercode_utils-2.0.4.tar.gz
-pip install --upgrade ../python_ubercode_utils/dist/python-ubercode-utils-2.0.4.tar.gz
+pip install --upgrade <path to app>/dist/python_ubercode_utils-2.0.5.tar.gz
+pip install --upgrade ../python_ubercode_utils/dist/python-ubercode-utils-2.0.5.tar.gz
 
 To Install:
 NOTE: be sure to use the pypi virtual env with twine and wheel instead of the project one

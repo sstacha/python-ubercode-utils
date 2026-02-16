@@ -290,10 +290,34 @@ class DjUrl:
         elif len(hoststr) > 0:
             self.host = hoststr
 
+#
+    def from_dict(self, properties_dict: dict):
+        """
+        overrides instance properties with dictionary values
+        NOTE: rule is that we expect the instance propery to be attribute uppercased
+        EX: self.name = properties_dict[self.name.upper()]
+
+        :param properties_dict: dictionary values
+        :return: this instance for chaining. ex: x = DjUrl().from_dict({"ENGINE": "test"})
+        """
+        if isinstance(properties_dict, dict):
+            for attr, value in vars(DjUrl).items():
+                if not attr.startswith('__') and not callable(value) and not attr.startswith('_'):
+                    setattr(self, attr, properties_dict.get(attr.upper(), value))
+        return self
+
     def to_dict(self) -> dict:
+        """
+        converts instance properties to dictionary values
+        NOTE: does not convert None values
+
+        :return: dict of values in upper case for replacement in django databases settings
+        """
         dct = {}
-        for attr, value in vars(self).items():
-            dct[attr.upper()] = value
+        for attr, value in vars(DjUrl).items():
+            if not attr.startswith('__') and not callable(value) and not attr.startswith('_'):
+                if getattr(self, attr) is not None:
+                    dct[attr.upper()] = getattr(self, attr)
         return dct
 
     def __str__(self) -> str:
