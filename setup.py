@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(name='python_ubercode_utils',
-      version='2.0.5',
+      version='2.0.6',
       description='Core python utilities for all apps',
       long_description=long_description,
       long_description_content_type="text/markdown",

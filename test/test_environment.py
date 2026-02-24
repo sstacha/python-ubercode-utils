@@ -109,6 +109,13 @@ class TestEnvironment(unittest.TestCase):
         self.assertTrue("Test_************sword" in sout.getvalue())
         # test a None still works for initialization
         self.assertIsNotNone(Environment())
+        # bug: test that a missing db gets created instead of failing (threw key error before)
+        os_vars = {
+            'DATABASES__booger__ENGINE': 'django.db.backends.mysql'
+        }
+        env2 = Environment(environment_variable_map=os_vars)
+        self.assertIsNotNone(env2.override_database_variables(DATABASES))
+
 
     def test_override_database_urls(self):
         # we will start with the default dict for a new django install

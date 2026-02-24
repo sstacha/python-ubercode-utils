@@ -199,7 +199,7 @@ class Environment:
                     _log_from_value = 'None'
                     _log_to_value = str(v)
                     # we may be setting up a completely new database from scratch so create if it doesn't exist
-                    if not db_dict[db_parts[1]]:
+                    if not db_dict.get(db_parts[1]):
                         self._logger.debug(f'database {db_parts[0]}[{db_parts[1]}] was not found; creating...')
                         db_dict[db_parts[1]] = {}
                     # we now have db dict; we may not have a property already defined; if not we want to add it
