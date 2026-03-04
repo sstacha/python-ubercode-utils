@@ -25,6 +25,12 @@ class TestEnvironment(unittest.TestCase):
         self.assertEqual(var, False)
         var = environment.override_variable("OVERRIDE_DEBUG", True)
         self.assertEqual(var, False)
+        # test implicit 'True', 'False' conversions with no default value; like we would get from os passed env
+        var = environment.override_variable("OVERRIDE_DEBUG")
+        self.assertEqual(var, False)
+        # test explict override
+        var = environment.override_variable("OVERRIDE_DEBUG", data_type='str')
+        self.assertEqual(var, 'False')
         # test int conversion
         var = environment.override_variable("TEST_INT", 0)
         self.assertEqual(var, 1)
@@ -53,14 +59,14 @@ class TestEnvironment(unittest.TestCase):
         with redirect_stdout(StringIO()) as sout:
             var = environment.override_variable("PW", "test_password")
         log_output = sout.getvalue()
-        self.assertEqual(log_output, "\x1b[94moverriding PW: [tes*******ord] to [ab******ef]\x1b[0m\n")
+        self.assertEqual(log_output, "\x1b[94moverriding PW [<class 'str'>]: [tes*******ord] to [ab******ef]\x1b[0m\n")
         # ensure the return value is the full password
         self.assertEqual(var, "abc1234def")
         # test masked if we tell it to mask
         with redirect_stdout(StringIO()) as sout:
             environment.override_variable("TEST_STRING", None, mask_log=True)
         log_output = sout.getvalue()
-        self.assertEqual(log_output, "\x1b[94moverriding TEST_STRING: [None] to [ab******ef]\x1b[0m\n")
+        self.assertEqual(log_output, "\x1b[94moverriding TEST_STRING [<class 'str'>]: [None] to [ab******ef]\x1b[0m\n")
 
     def test_override_database_variables(self):
         # we will start with the default dict for a new django install

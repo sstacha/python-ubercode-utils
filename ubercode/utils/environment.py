@@ -71,16 +71,26 @@ class Environment:
         self._env_map = environment_variable_map
 
     @staticmethod
-    def infer_data_type(value):
-        if value is not None:
-            if isinstance(value, bool):
+    def infer_data_type(default_value: Any, env_value: Any) -> str:
+        if default_value is not None:
+            if isinstance(default_value, bool):
                 return 'bool'
-            if isinstance(value, str):
-                return 'str'
-            if isinstance(value, int):
+            if isinstance(default_value, int):
                 return 'int'
-            if isinstance(value, datetime):
+            if isinstance(default_value, datetime):
                 return 'date'
+            if isinstance(default_value, str):
+                return 'str'
+        else:
+            # NOTE: all env vals are sent as strings so 'True', 'False' with no settings var will be str not bool
+            # considering inferring that it is python boolean if True,False with caps.  Will not do lower for
+            # js type true,false we want to pass through as strings lower case in a template; trying not to
+            # infer too much.
+            if env_value is not None and isinstance(env_value, str) and env_value.strip() in ('True', 'False'):
+                return 'bool'
+            # NOTE: we may want to look at some common date/time patters to infer date as well; but bool is
+            # important because things like DEBUG=False will evaluate as True if overridden right now without
+            # the variable being first initialized to something in the settings file.
         return 'str'
 
     def override_variable(self, variable_name: str, default_value: Any = None, environment_variable_name: str = None,
@@ -113,7 +123,7 @@ class Environment:
         if _env_value is not None:
             if data_type is None or data_type not in self.VARIABLE_DATA_TYPES:
                 # infer type from default value
-                data_type = self.infer_data_type(default_value)
+                data_type = self.infer_data_type(default_value, _env_value)
             # attempt to convert to datatype if not str
             if data_type == 'bool':
                 _env_value = convert.to_bool(_env_value)
@@ -128,7 +138,7 @@ class Environment:
                     _log_value = convert.to_mask(_env_value)
                     if _log_from_value != "None":
                         _log_from_value = convert.to_mask(_log_from_value)
-            self._logger.info(f'overriding {variable_name}: [{str(_log_from_value)}] to [{str(_log_value)}]')
+            self._logger.info(f'overriding {variable_name} [{type(_env_value)}]: [{str(_log_from_value)}] to [{str(_log_value)}]')
             return _env_value
         return default_value
 
